@@ -36,7 +36,7 @@ x^8 + x^4 + x^3 + x^2 + 1 (hex 11d) with primitive element x + 0 (hex 2).
  
 The example code polynomial roots are 1,2,4, which translates
 into a generator polynomial g(x) = (x-1)(x-2)(x-4). In a binary field, both
-+ and - are XOR, so the generator polynomial can be described as:
+ + and - are XOR, so the generator polynomial can be described as:
 
 g(x) = (x+1)(x+2)(x+4) = x^3 + 7 x^2 + 14 x + 8  (the 14 is decimal == 0x0e)
 
