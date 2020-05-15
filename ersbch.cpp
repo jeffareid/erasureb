@@ -431,7 +431,7 @@ BYTE b;
         for (c = 0; c < NCOL; c++)
             mDat.m[r][c] = b++;
 
-    // generate parity matrix mapped nto data matrix
+    // generate parity matrix mapped into data matrix
     MATRIX mPar(NPAR, NCOL, mDat.m[0]+NDAT*NCOL);
     MatrixMpy(mPar, mEnc, mDat);           // encode data
 
