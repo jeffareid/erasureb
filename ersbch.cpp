@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------//
 //      ersbch.cpp  erasure demo - BCH based RS code                    //
 //                  Copyright(c) 2020, Jeff Reid                        //
-//                  2020MAY15 14:30                                     //
+//                  2020MAY15 16:00                                     //
 //----------------------------------------------------------------------//
 //      equates                                                         //
 //----------------------------------------------------------------------//
@@ -308,7 +308,7 @@ BYTE *pSrc;                                 // ptr to src row
         r = 2;
     }
     for(c = 0; c < NCOL; c += 8)            // copy src row to dst row
-        *(QWORD *)&mDst.m[row][c] = *(QWORD *)(pSrc+c);
+        *(QWORD *)&mDst.m[row][c] = *(QWORD *)(&pSrc[c]);
     for( ; r < NROW; r++){                  // xor  non-erased rows
         if(r == row)
             continue;
