@@ -69,6 +69,5 @@ For n erasures, where n == 2 or n == 3, the following steps are performed:
 4. mInv is reduced in size by one row.
 4. mCor = mInv x mSyn (using (n-1) x 20 of mSyn). This is the correcting matrix.
 5. The columns of mCor corresponding to erasures are set = 0.
-   (As an alternative, erased rows could have been filled with 0x00).
 6. mFix = mCor x mDat. This corrects n-1 rows of mDat.
 7. The remaining erased row of mDat is corrected using XOR.
