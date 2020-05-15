@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------//
 //      ersbch.cpp  erasure demo - BCH based RS code                    //
 //                  Copyright(c) 2020, Jeff Reid                        //
-//                  2020MAY12 18:00                                     //
+//                  2020MAY15 12:00                                     //
 //----------------------------------------------------------------------//
 //      equates                                                         //
 //----------------------------------------------------------------------//
@@ -10,11 +10,12 @@
 #include <iomanip>
 #include <memory>
 
-typedef unsigned  char  BYTE;
+typedef unsigned char      BYTE;
+typedef unsigned long long QWORD;
 
 #define NDAT    17                      // # data rows
 #define NPAR    3                       // # parity rows
-#define NCOL    (32*1024)               // # columns
+#define NCOL    (32*1024)               // # columns (multiple of 16)
 
 #define DISPLAYI 0                      // dislay matrixinv
 
@@ -100,6 +101,7 @@ static void     InitGF(void);
 
 static void     MatrixMpy(MATRIX &, MATRIX &, MATRIX &);
 static int      MatrixInv(MATRIX &, MATRIX &);
+static void     MatrixXor(MATRIX &, int);
 static void     ShowMatrix(MATRIX &);
 
 static void     InitCombination(int[], int k, int n);
@@ -213,9 +215,9 @@ static void MatrixMpy(MATRIX &mDst, MATRIX &mSrc0, MATRIX &mSrc1)
 {
 int r, m, c;
 
-    memset(mDst.m[0], 0, mDst.r*mDst.c);// zero dst
-    for(r = 0; r < mSrc0.r; r++){       // do the mpy
-        for(m = 0; m < mSrc0.c; m++){
+    for(r = 0; r < mSrc0.r; r++){       // for each row
+        memset(mDst.m[r], 0, mDst.c);   // zero dst row
+        for(m = 0; m < mSrc0.c; m++){   // do the mpy
             for (c = 0; c < mSrc1.c; c++){
                 mDst.m[r][c] ^= GFMpy(mSrc0.m[r][m], mSrc1.m[m][c]);
             }
@@ -293,6 +295,29 @@ BYTE b;
 }
 
 //----------------------------------------------------------------------//
+//      MatrixXor - xor all but [row][] to [row]                        //
+//----------------------------------------------------------------------//
+static void MatrixXor(MATRIX &mDst, int row)
+{
+int r, c;
+BYTE *pSrc;                                 // ptr to src row
+    pSrc = mDst.m[0]; 
+    r = 1;
+    if(row == 0){
+        pSrc = mDst.m[1]; 
+        r = 2;
+    }
+    for(c = 0; c < NCOL; c += 8)            // copy src row to dst row
+        *(QWORD *)&mDst.m[row][c] = *(QWORD *)(pSrc+c);
+    for( ; r < NROW; r++){                  // xor  non-erased rows
+        if(r == row)
+            continue;
+        for(c = 0; c < NCOL; c += 8)
+            *(QWORD *)&mDst.m[row][c] ^= *(QWORD *)&mDst.m[r][c];
+    }
+}
+
+//----------------------------------------------------------------------//
 //      ShowMatrix                                                      //
 //----------------------------------------------------------------------//
 static void ShowMatrix(MATRIX &mSrc)
@@ -300,7 +325,7 @@ static void ShowMatrix(MATRIX &mSrc)
 int  r, c;
     for(r = 0; r < mSrc.r; r++){
         for(c = 0; c < mSrc.c; c++)
-            std::cout << ' ' << std::setfill('0') << std::hex
+            std::cout << std::setfill('0') << std::hex
                       << std::setw(2) << (int)mSrc.m[r][c];
         std::cout << std::endl;}
     std::cout << std::endl;
@@ -338,26 +363,21 @@ static void Patterns(MATRIX &mSyn, MATRIX &mDat)
 int e[NPAR];                                // erasures
 int r, c, n, m;
 
-    {                                       // single erasure
-        for(e[0] = 0; e[0] < NROW; e[0]++){
-            memset(mDat.m[e[0]],0x00,NCOL); // zero erased row
-            for(r = 0; r < NROW; r++){      // xor  non-erased rows
-                if(r == e[0])
-                    continue;
-                for(c = 0; c < NCOL; c++){
-                    mDat.m[e[0]][c] ^= mDat.m[r][c];
-                }
-            }
-        }
+    for(r = 0; r < NROW; r++){              // single erasures
+        memset(mDat.m[r], 0xaa, NCOL);      // corrupt row
+        MatrixXor(mDat, r);                 // xor non-erased rows
     }
+        
     for(n = 2; n <= NPAR; n++){             // n = number of erasures
         m = n - 1;                          // m = n-1
         MATRIX mLct(n,n);                   // locator matrix
         MATRIX mInv(n,n);                   // inverse matrix
         MATRIX mCor(m,NROW);                // correction matrix
-        MATRIX mFix(m,NCOL);                // fixed data matrix
+        MATRIX mFix(m,NCOL,mDat.m[0]);      // fixed data matrix
         InitCombination(e, n, NROW);        // setup next combination
         while(NextCombination(e, n, NROW)){ // set e == erasure indexes
+            for(r = 0; r < n; r++)          // set mFix row ptrs to mDat
+                mFix.m[r] = mDat.m[e[r]];
             for(r = 0; r < n; r++)          // corrupt erased rows
                 memset(mDat.m[e[r]], 0xaa, NCOL);
             for(r = 0; r < n; r++)          // generate locator matrix
@@ -370,16 +390,7 @@ int r, c, n, m;
                 for(c = 0; c < n; c++)
                     mCor.m[r][e[c]] = 0;
             MatrixMpy(mFix, mCor, mDat);    // generate m corrected rows
-            for(r = 0; r < m; r++)          // move     m corrected rows
-                memcpy(mDat.m[e[r]], mFix.m[r], NCOL);
-            memset(mDat.m[e[m]],0x00,NCOL); // zero erased row
-            for(r = 0; r < NROW; r++){      // xor  non-erased rows
-                if(r == e[m])
-                    continue;
-                for(c = 0; c < NCOL; c++){
-                    mDat.m[e[m]][c] ^= mDat.m[r][c];
-                }
-            }
+            MatrixXor(mDat, e[m]);          // xor non-erased rows
             mInv.r = n;                     // restore mInv to n rows
         }
     }
