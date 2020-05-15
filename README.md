@@ -41,13 +41,16 @@ add and subtract are XOR, so the generator polynomial can be described as:
 g(x) = (x+1)(x+2)(x+4) = x^3 + 7 x^2 + 14 x + 8  (the 14 is decimal == 0x0e)
 
 A custom matrix class based on an array of pointers to rows is used.
+This matrix class includes an mapped matrix option, where the mapped
+matrix points to all or a sub-set of the rows of another matrix.
+
 Main sets up the matrices used:
 ```
   mEnc =     3 x 20 parity   (for encoding) matrix
   mSyn =     3 x 20 syndrome (for decoding) matrix
   mDat = 20 x 32768 encoded data matrix
-         17   data rows, 32768 columns each
-          3 parity rows, 32768 columns each
+                    17 data rows, 3 parity rows
+  mPar =  3 x 32768 mapped matrix = parity rows of mDat
 ```
 
 The function Patterns tests all 1, 2, and 3 erasure patterns.
@@ -60,12 +63,12 @@ For a single erasure, the example code XOR's rows of data for correction.
 For n erasures, where n == 2 or n == 3, the following steps are performed:
 
 1. mDat's erased rows are filled with 0xAA (representing garbage).
+2. mFix = mapped matrix = erased rows of mDat.
 2. mLct = n x n locator matrix is generated based on erasure indexes.
 3. mInv = inverse of mLct.
 4. mInv is reduced in size by one row.
 4. mCor = mInv x mSyn (using (n-1) x 20 of mSyn). This is the correcting matrix.
 5. The columns of mCor corresponding to erasures are set = 0.
    (As an alternative, erased rows could have been filled with 0x00).
-6. mFix = mCor x mDat. This generates n-1 corrected rows.
-7. mFix is copied into n-1 erased rows of mDat.
-8. The remaining erased row of mDat is corrected using XOR.
+6. mFix = mCor x mDat. This corrects n-1 rows of mDat.
+7. The remaining erased row of mDat is corrected using XOR.
