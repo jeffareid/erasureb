@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------//
 //      ersbch.cpp  erasure demo - BCH based RS code                    //
 //                  Copyright(c) 2020, Jeff Reid                        //
-//                  2020MAY15 12:00                                     //
+//                  2020MAY15 14:30                                     //
 //----------------------------------------------------------------------//
 //      equates                                                         //
 //----------------------------------------------------------------------//
@@ -376,7 +376,7 @@ int r, c, n, m;
         MATRIX mFix(m,NCOL,mDat.m[0]);      // fixed data matrix
         InitCombination(e, n, NROW);        // setup next combination
         while(NextCombination(e, n, NROW)){ // set e == erasure indexes
-            for(r = 0; r < n; r++)          // set mFix row ptrs to mDat
+            for(r = 0; r < n; r++)          // set mFix to mDat erased rows
                 mFix.m[r] = mDat.m[e[r]];
             for(r = 0; r < n; r++)          // corrupt erased rows
                 memset(mDat.m[e[r]], 0xaa, NCOL);
@@ -389,8 +389,8 @@ int r, c, n, m;
             for(r = 0; r < m; r++)          // zero out n erased columns
                 for(c = 0; c < n; c++)
                     mCor.m[r][e[c]] = 0;
-            MatrixMpy(mFix, mCor, mDat);    // generate m corrected rows
-            MatrixXor(mDat, e[m]);          // xor non-erased rows
+            MatrixMpy(mFix, mCor, mDat);    // correct m rows
+            MatrixXor(mDat, e[m]);          // correct last row via xor
             mInv.r = n;                     // restore mInv to n rows
         }
     }
