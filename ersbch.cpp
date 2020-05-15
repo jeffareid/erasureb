@@ -37,7 +37,7 @@ MATRIX(int rr, int cc)                  // new matrix
         m[i] = p+i*cc;
   }
 
-MATRIX(int rr, int cc, BYTE *pp)        // embedded matrix
+MATRIX(int rr, int cc, BYTE *pp)        // mapped matrix
   {
     p = NULL;
     r = rr;
@@ -431,7 +431,7 @@ BYTE b;
         for (c = 0; c < NCOL; c++)
             mDat.m[r][c] = b++;
 
-    // generate parity matrix embedded into data matrix
+    // generate parity matrix mapped nto data matrix
     MATRIX mPar(NPAR, NCOL, mDat.m[0]+NDAT*NCOL);
     MatrixMpy(mPar, mEnc, mDat);           // encode data
 
