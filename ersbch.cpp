@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------//
 //      ersbch.cpp  erasure demo - BCH based RS code                    //
 //                  Copyright(c) 2020, Jeff Reid                        //
-//                  2020MAY24 16:00                                     //
+//                  2020MAY24 17:30                                     //
 //----------------------------------------------------------------------//
 //      equates                                                         //
 //----------------------------------------------------------------------//
@@ -433,14 +433,10 @@ BYTE b;
 
     // generate parity matrix mapped into data matrix
     MATRIX mPar(NPAR, NCOL, mDat.m[0]+NDAT*NCOL);
-#if 1
     mEnc.r--;                               // drop last row from mEnc
     MatrixMpy(mPar, mEnc, mDat);            // encode all but last row
     MatrixXor(mDat, NROW-1);                // xor last row ("fix" it)
     mEnc.r++;                               // restore mEnc row cnt
-#else   
-    MatrixMpy(mPar, mEnc, mDat);            // encode data
-#endif
 
     ctTimeStart = clock();
     Patterns(mSyn, mDat);                   // test erasure patterns
