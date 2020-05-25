@@ -4,9 +4,9 @@ Reed-Solomon Erasure Coding (BCH) in C++
 
 This is a C++ example of a BCH based erasure code.
 
-In the example code, there are defines that setup a matrix as a
-20 row x 32768 column matrix, with the first 17 rows as data, and
-the last 3 rows as parities, for up to 3 erasure correction.
+In the example code, there are defines that setup a data matrix
+as a 20 row x 32768 column matrix, with the first 17 rows as data,
+and the last 3 rows as parities, for up to 3 erasure correction.
 
 The example code is based on "BCH view" Reed Solomon code as an
 alternative to "original view Vandermonde matrix" code.
@@ -18,11 +18,14 @@ Almost all Reed Solomon error or error+erasure correcting codes
 are BCH view. They were developed much earlier and are much faster
 at correcting errors.
 
-For erasure only correction, BCH view still has an advantage.
-Encode time is similar, but for correction, for a n erasure
-case, BCH view can correct n-1 erasures via matrix multiply,
-and XOR to correct the remaining erasure. A single erasure
-only requires XOR.
+BCH view is also faster as an erasure only code.
+Let p = # parity rows, and e = # erasure rows for correction.
+
+BCH view encodes p-1 rows via matrix multiply and XOR to encode
+the remaining row, essentially correcting the last row to encode it.
+
+BCH view corrects e-1 erasure rows via matrix multiply, and XOR to
+correct the remaining erasure row. A single erasure only uses XOR.
 
 The Wikipedia article describes the differences between "orignal view"
 and "BCH view", as well as a descrption of the encoders. The article

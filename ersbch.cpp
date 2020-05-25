@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------//
 //      ersbch.cpp  erasure demo - BCH based RS code                    //
 //                  Copyright(c) 2020, Jeff Reid                        //
-//                  2020MAY15 16:00                                     //
+//                  2020MAY24 16:00                                     //
 //----------------------------------------------------------------------//
 //      equates                                                         //
 //----------------------------------------------------------------------//
@@ -420,12 +420,12 @@ BYTE b;
         }
     }
 
-    MATRIX mSyn(NPAR, NROW);               // generate syndrome matrix
+    MATRIX mSyn(NPAR, NROW);                // generate syndrome matrix
     for(r = 0; r < NPAR; r++)
         for(c = 0; c < NROW; c++)
-            mSyn.m[r][c] = GFPow(2,r*(NROW-1-c));
+            mSyn.m[r][c] = GFPow(abRoot[r], NROW-1-c);
 
-    MATRIX mDat(NROW, NCOL);               // generate data matrix
+    MATRIX mDat(NROW, NCOL);                // generate data matrix
     b = 0;
     for (r = 0; r < NDAT; r++)
         for (c = 0; c < NCOL; c++)
@@ -433,14 +433,21 @@ BYTE b;
 
     // generate parity matrix mapped into data matrix
     MATRIX mPar(NPAR, NCOL, mDat.m[0]+NDAT*NCOL);
-    MatrixMpy(mPar, mEnc, mDat);           // encode data
+#if 1
+    mEnc.r--;                               // drop last row from mEnc
+    MatrixMpy(mPar, mEnc, mDat);            // encode all but last row
+    MatrixXor(mDat, NROW-1);                // xor last row ("fix" it)
+    mEnc.r++;                               // restore mEnc row cnt
+#else   
+    MatrixMpy(mPar, mEnc, mDat);            // encode data
+#endif
 
     ctTimeStart = clock();
-    Patterns(mSyn, mDat);                  // test erasure patterns
+    Patterns(mSyn, mDat);                   // test erasure patterns
     ctTimeStop = clock();
     std::cout << "# of ticks " << ctTimeStop - ctTimeStart << std::endl;
 
-    b = 0;                                 // do a one time verify of mDat
+    b = 0;                                  // do a one time verify of mDat
     for (r = 0; r < NDAT; r++) {
         for (c = 0; c < NCOL; c++) {
             if (mDat.m[r][c] != b++) {
