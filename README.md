@@ -2,7 +2,11 @@
 
 Reed-Solomon Erasure Coding (BCH) in C++
 
-This is a C++ example of a BCH based erasure code.
+ersbch.cpp = C++ BCH based erasure code.
+
+ersbchc.cpp+ersbch16.asm - C++ and assembly erasure code.
+
+Visual Studio 2015 was used to compile and/or assemble code.
 
 In the example code, there are defines that setup a data matrix
 as a 20 row x 32768 column matrix, with the first 17 rows as data,
