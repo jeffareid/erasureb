@@ -4,7 +4,8 @@ Reed-Solomon Erasure Coding (BCH) in C++
 
 ersbch.cpp = C++ BCH based erasure code.
 
-ersbchc.cpp+ersbch16.asm - C++ and assembly erasure code.
+ersbchc.cpp+ersbch32.asm - C++ and assembly erasure code.
+ersbch32.asm functions use C++ mangled names.
 
 Visual Studio 2015 was used to compile and/or assemble code.
 
