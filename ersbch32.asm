@@ -3,14 +3,14 @@
 ;-----------------------------------------------------------------------;
 ;	ersbch32.asm	fast GF(2^8) stuff				;
 ;		    Copyright(c) 2020, Jeff Reid			;
-;		    2020MAY28 09:00					;
+;		    2020JUN27 21:15					;
 ;-----------------------------------------------------------------------;
 nrow	equ	20			;max # rows
 mx	struct				;matrix structure
 p	dq	?			;ptr to bfr
 m	dq	nrow dup (?)		;ptr to matrix
-r	dd	?			;# rows
-c	dd	?			;# columns
+r	dq	?			;# rows
+c	dq	?			;# columns
 mx	ends
 ;-----------------------------------------------------------------------;
 ;	DATA								;
@@ -126,13 +126,13 @@ mpy2:	movdqa	xmm2,xmmword ptr [   r10+r13] ;get 32 bytes
 mpy3:	movdqa	xmmword ptr [	r12+r13],xmm0
 	movdqa	xmmword ptr [16+r12+r13],xmm4
 	add	r13,32
-	cmp	r13d,[ r8].mx.c
+	cmp	r13,[ r8].mx.c
 	jb	mpy2
 	inc	r14
-	cmp	r14d,[rdx].mx.c
+	cmp	r14,[rdx].mx.c
 	jb	mpy1
 	inc	r15
-	cmp	r15d,[rdx].mx.r
+	cmp	r15,[rdx].mx.r
 	jb	mpy0
 	movdqa	xmm6, [rsp+16*0]
 	movdqa	xmm7, [rsp+16*1]
@@ -151,15 +151,15 @@ mpy3:	movdqa	xmmword ptr [	r12+r13],xmm0
 ?MatrixMpya@@YAXAEAVMATRIX@@00@Z endp
 
 ;	c++ name mangled
-	public	?MatrixXora@@YAXAEAVMATRIX@@H@Z
+	public	?MatrixXora@@YAXAEAVMATRIX@@_K@Z
 	align 16
 ;	MatrixXora	rcx = MATRIX &mDst
 ;			rdx = row, != 0
-?MatrixXora@@YAXAEAVMATRIX@@H@Z proc
+?MatrixXora@@YAXAEAVMATRIX@@_K@Z proc
 	push	rdi
 	push	rsi
-	mov	r11d,[rcx].mx.r		;r11  = # rows
-	mov	r10d,[rcx].mx.c		;r10  = # cols
+	mov	r11,[rcx].mx.r		;r11  = # rows
+	mov	r10,[rcx].mx.c		;r10  = # cols
 	mov	r9,32			;r9   = # cols per read/write
 	mov	rdi,[rcx+rdx*8].mx.m	;rdi = ptr to dst row
 	mov	rsi,[rcx].mx.m		;rsi = ptr to row 0
@@ -200,7 +200,7 @@ xor4:	inc	r8
 	pop	rsi
 	pop	rdi
 	ret
-?MatrixXora@@YAXAEAVMATRIX@@H@Z endp
+?MatrixXora@@YAXAEAVMATRIX@@_K@Z endp
 
 	end
 

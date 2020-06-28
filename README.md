@@ -4,39 +4,29 @@ Reed-Solomon Erasure Coding (BCH) in C++
 
 ersbch.cpp = C++ BCH based erasure code.
 
-ersbchc.cpp+ersbch32.asm - C++ and assembly erasure code.
+ersbchc.cpp+ersbch32.asm - C++ and assembly X86 X64 erasure code.
 ersbch32.asm functions use C++ mangled names.
 
-Visual Studio 2015 was used to compile and/or assemble code.
+Visual Studio 2015 was used to compile and assemble code.
 
 In the example code, there are defines that setup a data matrix
 as a 20 row x 32768 column matrix, with the first 17 rows as data,
 and the last 3 rows as parities, for up to 3 erasure correction.
 
-The example code is based on "BCH view" Reed Solomon code as an
-alternative to "original view Vandermonde matrix" code.
-"Original view" and "BCH view" are actually two different codes,
-using different encoding and decoding algorithms, but both are
-called Reed Solomon.
-
-Almost all Reed Solomon error or error+erasure correcting codes
-are BCH view. They were developed much earlier and are much faster
-at correcting errors.
-
-BCH view is also faster as an erasure only code.
-Let p = # parity rows, and e = # erasure rows for correction.
-
-BCH view encodes p-1 rows via matrix multiply and XOR to encode
-the remaining row, essentially correcting the last row to encode it.
-
-BCH view corrects e-1 erasure rows via matrix multiply, and XOR to
-correct the remaining erasure row. A single erasure only uses XOR.
+Ersbch is based on "BCH view" Reed Solomon code as an alternative
+to "original view Vandermonde matrix" code.
 
 The Wikipedia article describes the differences between "orignal view"
 and "BCH view", as well as a descrption of the encoders. The article
 describes error decoders, but not erasure only decoders.
 
 [Wiki Reed Solomon](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction)
+
+For p parities, ersbch encodes p-1 rows via matrix multiply and XOR
+to encode the remaining row, correcting the last row to encode it.
+
+For n erasures, ersbch corrects n-1 rows via matrix multiply and XOR
+to correct the remaining row. A single erasure only uses XOR.
 
 In the example code, the field is GF(2^8) based on
 
@@ -70,13 +60,15 @@ For a single erasure, the example code XOR's rows of data for correction.
 
 For n erasures, where n == 2 or n == 3, the following steps are performed:
 
-mDat's erased rows are filled with 0xAA (representing garbage).
-mSrc = mapped matrix = non erased rows of mDat.
-mDst = mapped matrix = erased rows of mDat.
-mLct = n x n locator matrix, generated based on erasure indexes.
-mInv = inverse of mLct.
-mInv is reduced in size by one row.
-mCor = mInv x mSyn (using (n-1) x 20 of mSyn).
-mCor is reduced in size by n columns.
-mDst = mCor x mSrc. This corrects n-1 rows of mDat.
-The remaining erased row of mDat is corrected using XOR.
+```
+  mDat's erased rows are filled with 0xAA (representing garbage).
+  mSrc = mapped matrix = non erased rows of mDat.
+  mDst = mapped matrix =     erased rows of mDat.
+  mLct = n x n locator matrix, generated based on erasure indexes.
+  mInv = inverse of mLct.
+  mInv is reduced in size by one row.
+  mCor = mInv x mSyn (using (n-1) x 20 of mSyn).
+  mCor is reduced in size by n columns.
+  mDst = mCor x mSrc. This corrects n-1 rows of mDat.
+  The remaining erased row of mDat is corrected using XOR.
+```
