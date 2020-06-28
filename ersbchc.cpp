@@ -88,7 +88,7 @@ static clock_t  ctTimeStop;
 //----------------------------------------------------------------------//
 //      code                                                            //
 //----------------------------------------------------------------------//
-extern "C++" void InitGFa(uint8_t *);
+extern "C++" void InitGFa(BYTE *);
 extern "C++" void MatrixMpya(MATRIX &, MATRIX &, MATRIX &);
 extern "C++" void MatrixXora(MATRIX &, QWORD);
 
