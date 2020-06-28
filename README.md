@@ -1,20 +1,11 @@
 # ersbch
 
-Reed-Solomon Erasure Coding (BCH) in C++
-
-ersbch.cpp = C++ BCH based erasure code.
-
-ersbchc.cpp+ersbch32.asm - C++ and assembly X86 X64 erasure code.
-ersbch32.asm uses C++ mangled names.
-
-Visual Studio 2015 was used to compile and assemble code.
-
-In the example code, there are defines that setup a data matrix
-as a 20 row x 32768 column matrix, with the first 17 rows as data,
-and the last 3 rows as parities, for up to 3 erasure correction.
+Reed-Solomon Erasure Coding (BCH) in C++ - X86 X64.
 
 Ersbch is based on "BCH view" Reed Solomon code as an alternative
-to "original view Vandermonde matrix" code.
+to "original view Vandermonde matrix" code. This allows XOR to be
+used for one row of data during encode and decode to reduce matrix
+multiply overhead.
 
 The Wikipedia article describes the differences between "orignal view"
 and "BCH view", as well as a descrption of the encoders. The article
@@ -27,6 +18,18 @@ to encode the remaining row, correcting the last row to encode it.
 
 For n erasures, ersbch corrects n-1 rows via matrix multiply and XOR
 to correct the remaining row. A single erasure only uses XOR.
+
+ersbch.cpp = C++ BCH based erasure code.
+
+ersbchc.cpp + ersbch32.asm - C++ and assembly erasure code.
+
+ersbch32.asm uses C++ mangled names (for matrices passed by reference).
+
+Visual Studio was used to compile and assemble code.
+
+In the example code, there are defines that setup a data matrix
+as a 20 row x 32768 column matrix, with the first 17 rows as data,
+and the last 3 rows as parities, for up to 3 erasure correction.
 
 In the example code, the field is GF(2^8) based on
 
