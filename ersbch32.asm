@@ -21,8 +21,6 @@ mask1	dq	00f0f0f0f0f0f0f0fh
 	dq	00f0f0f0f0f0f0f0fh
 mask2	dq	0f0f0f0f0f0f0f0f0h
 	dq	0f0f0f0f0f0f0f0f0h
-zero	dq	00000000000000000h
-	dq	00000000000000000h
 	.data?
 	align 16
 mpytbl	db	(256*2*16) dup (?)	;mpy tables
