@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------//
 //      ersbch.cpp  erasure demo - BCH based RS code                    //
 //                  Copyright(c) 2020, Jeff Reid                        //
-//                  2020JUN27 20:30                                     //
+//                  2020JUN27 21:15                                     //
 //----------------------------------------------------------------------//
 //      equates                                                         //
 //----------------------------------------------------------------------//
@@ -10,13 +10,15 @@
 #include <iomanip>
 #include <memory>
 
-typedef unsigned char      BYTE;
+typedef unsigned char       BYTE;
+typedef unsigned short      WORD;
+typedef unsigned long      DWORD;
 typedef unsigned long long QWORD;
 
 #define NDAT    17                      // # data rows
 #define NPAR    3                       // # parity rows
-#define NCOL    (32*1024)               // # columns (multiple of 32)
-const int NROW = NDAT+NPAR;             // # rows (total)
+#define NCOL    (32*1024ull)            // # columns (multiple of 32)
+const QWORD NROW = NDAT+NPAR;           // # rows (total)
 
 #define DISPLAYI 0                      // dislay matrixinv
 
@@ -24,24 +26,24 @@ class MATRIX{
 public:
     BYTE *p = NULL;                     // ptr to data
     BYTE *m[NROW];                      // array of ptrs
-    int r;                              // # rows
-    int c;                              // # columns
+    QWORD r;                            // # rows
+    QWORD c;                            // # columns
 
-MATRIX(int rr, int cc)                  // new matrix
+MATRIX(QWORD rr, QWORD cc)              // new matrix
   {
     p = new BYTE[rr*cc];
     r = rr;
     c = cc;
-    for(int i = 0; i < rr; i++)
+    for(QWORD i = 0; i < rr; i++)
         m[i] = p+i*cc;
   }
 
-MATRIX(int rr, int cc, BYTE *pp)        // mapped matrix
+MATRIX(QWORD rr, QWORD cc, BYTE *pp)        // mapped matrix
   {
     p = NULL;
     r = rr;
     c = cc;
-    for(int i = 0; i < rr; i++)
+    for(QWORD i = 0; i < rr; i++)
         m[i] = pp+i*cc;
   }
 
@@ -55,7 +57,7 @@ MATRIX(int rr, int cc, BYTE *pp)        // mapped matrix
 //----------------------------------------------------------------------//
 //      data                                                            //
 //----------------------------------------------------------------------//
-static int aiGA[60] =                   // GF's and Alpha's //
+static WORD awGA[60] =                   // GF's and Alpha's //
    {0x11b,0x03,0x11d,0x02,0x12b,0x02,0x12d,0x02,
     0x139,0x03,0x13f,0x03,0x14d,0x02,0x15f,0x02,
     0x163,0x02,0x165,0x02,0x169,0x02,0x171,0x02,
@@ -77,7 +79,7 @@ static BYTE     abPow[65536];           // matrix for GFPow
 static BYTE     abRoot[NPAR];
 static BYTE     abPoly[NPAR+1];
 
-static int      iGF;                    // Galios Field Polynomial
+static WORD     wGF;                    // Galios Field Polynomial
 static BYTE     bAlpha;                 // Alpha for this field
 
 static clock_t  ctTimeStart;            // clock values
@@ -99,12 +101,12 @@ static BYTE     GFPow1(BYTE, BYTE);
 static void     InitGF(void);
 
 static void     MatrixMpy(MATRIX &, MATRIX &, MATRIX &);
-static int      MatrixInv(MATRIX &, MATRIX &);
-static void     MatrixXor(MATRIX &, int);
+static bool     MatrixInv(MATRIX &, MATRIX &);
+static void     MatrixXor(MATRIX &, QWORD);
 static void     ShowMatrix(MATRIX &);
 
-static void     InitCombination(int[], int k, int n);
-static bool     NextCombination(int [], int, int);
+static void     InitCombination(QWORD[], QWORD, QWORD);
+static bool     NextCombination(QWORD[], QWORD, QWORD);
 static void     Patterns(MATRIX &, MATRIX &);
 
 //----------------------------------------------------------------------//
@@ -112,13 +114,13 @@ static void     Patterns(MATRIX &, MATRIX &);
 //----------------------------------------------------------------------//
 static BYTE GFMpy0(BYTE b0, BYTE b1)
 {
-int i;
-int product;
+WORD i;
+WORD product;
     product = 0;
     for(i = 0; i < 8; i++){
         product <<= 1;
         if(product & 0x100){
-            product ^= iGF;}
+            product ^= wGF;}
         if(b0 & 0x80u){
             product ^= b1;}
         b0 <<= 1;}
@@ -132,8 +134,7 @@ static BYTE GFMpy1(BYTE byt0, BYTE byt1)
 {
     if(byt0 == 0 || byt1 == 0)
         return(0);
-
-    return(abExp[(int)abLog[byt0]+(int)abLog[byt1]]);
+    return(abExp[(size_t)abLog[byt0]+(size_t)abLog[byt1]]);
 }
 
 //----------------------------------------------------------------------//
@@ -146,7 +147,7 @@ static BYTE GFDiv1(BYTE b0, BYTE b1)
         return(0);}
     if(b0 == 0)
         return(0);
-    return(abExp[255+(int)abLog[b0]-(int)abLog[b1]]);
+    return(abExp[255+(size_t)abLog[b0]-(size_t)abLog[b1]]);
 }
 
 //----------------------------------------------------------------------//
@@ -170,7 +171,7 @@ BYTE b;
 static void InitGF(void)
 {
 BYTE b;
-int i, j;
+QWORD i, j;
 
     b = 1;
     for(i = 0; i < 512; i++){           // init abExp[] //
@@ -179,18 +180,18 @@ int i, j;
 
     abLog[0] = 0xff;                    // init abLog[] //
     for(i = 0; i < 255; i++){
-        abLog[abExp[i]] = i;}
+        abLog[abExp[i]] = (BYTE)i;}
 
     for(j = 0; j < 256; j++){           // init GF math matrices
         for (i = 0; i < 256; i++){
-            abMpy[(j<<8)+i] = GFMpy1(j, i);
+            abMpy[(j<<8)+i] = GFMpy1((BYTE)j, (BYTE)i);
             if(i != 0){
-                abDiv[(j<<8)+i] = GFDiv1(j, i);}
+                abDiv[(j<<8)+i] = GFDiv1((BYTE)j, (BYTE)i);}
         }
     }
     for (j = 0; j < 256; j++) {
         for (i = 0; i < 256; i++) {
-            abPow[(j << 8) + i] = GFPow1(j, i);
+            abPow[(j<<8)+i] = GFPow1((BYTE)j, (BYTE)i);
         }
     }
 
@@ -202,7 +203,7 @@ int i, j;
 
     abPoly[0] = 1;                      // init abPoly
     for(j = 0; j < NPAR; j++){
-        for(i = j; i >= 0; i--){
+        for(i = j; i != (0ull-1ull); i--){
             abPoly[i+1] = GFSub(abPoly[i+1],
                     GFMpy(abPoly[i], abRoot[j]));}}
 }
@@ -212,7 +213,7 @@ int i, j;
 //----------------------------------------------------------------------//
 static void MatrixMpy(MATRIX &mDst, MATRIX &mSrc0, MATRIX &mSrc1)
 {
-int r, m, c;
+QWORD r, m, c;
 
     for(r = 0; r < mSrc0.r; r++){       // for each row
         memset(mDst.m[r], 0, mDst.c);   // zero dst row
@@ -228,9 +229,9 @@ int r, m, c;
 //      MatrixInv(mDst, mSrc) invert matrix                             //
 //      assumes square matrix                                           //
 //----------------------------------------------------------------------//
-static int MatrixInv(MATRIX &mDst, MATRIX &mSrc)
+static bool MatrixInv(MATRIX &mDst, MATRIX &mSrc)
 {
-int r, c, t;
+QWORD r, c, t;
 BYTE b;
 
     MATRIX mAug(mSrc.r, mSrc.c<<1);     // create augmented matrix
@@ -253,10 +254,10 @@ BYTE b;
 
     for(r = 0; r < mSrc.r; r++){            // working at [r][r]
 //      find 1st non-zero in current row's column
-//      (no check for non-invertible matrix)
         t = r;
         while(0 == mAug.m[t][r])
-            t++;
+            if(++t == mSrc.r)
+                return 1;
 //      swap rows if needed
         if(t != r){
             std::swap(mAug.m[r], mAug.m[t]);
@@ -290,15 +291,15 @@ BYTE b;
 //      copy right side of mAug to mDst
     for(r = 0; r < mDst.r; r++)
         memcpy(mDst.m[r], mAug.m[r]+mSrc.c, mSrc.c);
-    return(0);
+    return 0;
 }
 
 //----------------------------------------------------------------------//
 //      MatrixXor - xor all but [row][] to [row]                        //
 //----------------------------------------------------------------------//
-static void MatrixXor(MATRIX &mDst, int row)
+static void MatrixXor(MATRIX &mDst, QWORD row)
 {
-int r, c;
+QWORD r, c;
 BYTE *pSrc;                                 // ptr to src row
     pSrc = mDst.m[0]; 
     r = 1;
@@ -321,11 +322,11 @@ BYTE *pSrc;                                 // ptr to src row
 //----------------------------------------------------------------------//
 static void ShowMatrix(MATRIX &mSrc)
 {
-int  r, c;
+QWORD  r, c;
     for(r = 0; r < mSrc.r; r++){
         for(c = 0; c < mSrc.c; c++)
             std::cout << std::setfill('0') << std::hex
-                      << std::setw(2) << (int)mSrc.m[r][c] << ' ';
+                      << std::setw(2) << mSrc.m[r][c] << ' ';
         std::cout << std::endl;}
     std::cout << std::endl;
 }
@@ -333,8 +334,8 @@ int  r, c;
 //----------------------------------------------------------------------//
 //      InitCombination - init combination to first set - 1             //
 //----------------------------------------------------------------------//
-void InitCombination(int a[], int k, int n) {
-    for(int i = 0; i < k; i++)
+void InitCombination(QWORD a[], QWORD k, QWORD n) {
+    for(QWORD i = 0; i < k; i++)
         a[i] = i;
     --a[k-1];     // 1st call to NextCombination will return 1st set
 }
@@ -342,14 +343,14 @@ void InitCombination(int a[], int k, int n) {
 //----------------------------------------------------------------------//
 //      NextCombination - generate next combination                     //
 //----------------------------------------------------------------------//
-bool NextCombination(int a[], int k, int n) {
-int j = k - 1;
-    while (j >= 0 && a[j] == n - k + j)
+bool NextCombination(QWORD a[], QWORD k, QWORD n) {
+QWORD j = k - 1;
+    while (j != (0ull-1ull) && a[j] == n - k + j)
         --j;
-    if (j == -1)
+    if (j == (0ull-1ull))
         return false;
     ++a[j];
-    for (int i = j + 1; i < k; ++i)
+    for (QWORD i = j + 1; i < k; ++i)
         a[i] = a[j] + i - j;
     return true;
 }
@@ -359,8 +360,8 @@ int j = k - 1;
 //----------------------------------------------------------------------//
 static void Patterns(MATRIX &mSyn, MATRIX &mDat)
 {
-int e[NPAR];                                // erasures
-int r, c, n, m, x;
+QWORD e[NPAR];                              // erasures
+QWORD r, c, n, m, x;
 
     for(r = 0; r < NROW; r++){              // single erasures
         memset(mDat.m[r], 0xaa, NCOL);      // corrupt row
@@ -372,7 +373,7 @@ int r, c, n, m, x;
         MATRIX mLct(n,n);                   // locator matrix
         MATRIX mInv(n,n);                   // inverse matrix
         MATRIX mCor(m,NROW);                // correction matrix
-        MATRIX mSrc(NROW-m,NCOL,mDat.m[0]); // src data sub-matrix
+        MATRIX mSrc(NROW-n,NCOL,mDat.m[0]); // src data sub-matrix
         MATRIX mDst(m,NCOL,mDat.m[0]);      // dst data sub-matrix
         InitCombination(e, n, NROW);        // setup next combination
         while(NextCombination(e, n, NROW)){ // set e == erasure indexes
@@ -414,18 +415,18 @@ int r, c, n, m, x;
 //----------------------------------------------------------------------//
 int main()
 {
-int r, c;
+QWORD r, c;
 BYTE b;
 
-    iGF = aiGA[2];                          // select GF params
-    bAlpha = aiGA[3];
+    wGF = awGA[2];                          // select GF params
+    bAlpha = (BYTE)awGA[3];
     InitGF();
     MATRIX mEnc(NPAR, NDAT);                // generate encode matrix
     {
         BYTE abRem[NPAR+1] = {0};
         BYTE q = 1;
-        for(c = NDAT-1; c >= 0; c--){
-            for(int i = 0; i < NPAR; i++)
+        for(c = NDAT-1; c != (0ull-1ull); c--){
+            for(QWORD i = 0; i < NPAR; i++)
                 abRem[i] = GFSub(abRem[i+1], GFMpy(q, abPoly[i+1]));
             for(r = 0; r < NPAR; r++)
                 mEnc.m[r][c] = abRem[r];
@@ -447,8 +448,11 @@ BYTE b;
     // generate parity matrix mapped into data matrix
     MATRIX mPar(NPAR, NCOL, mDat.m[0]+NDAT*NCOL);
     mEnc.r--;                               // drop last row from mEnc
+    ctTimeStart = clock();
     MatrixMpy(mPar, mEnc, mDat);            // encode all but last row
     MatrixXor(mDat, NROW-1);                // xor last row ("fix" it)
+    ctTimeStop = clock();
+    std::cout << "# of ticks " << ctTimeStop - ctTimeStart << std::endl;
     mEnc.r++;                               // restore mEnc row cnt
 
     ctTimeStart = clock();
