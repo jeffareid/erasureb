@@ -57,7 +57,7 @@ Main sets up the matrices used:
 The function Patterns tests all 1, 2, and 3 erasure patterns.
 The inputs to Patterns are mSyn and mDat.
 InitCombination initializes for NextCombination.
-NextCombination generate the erasure indexes for each erasure pattern.
+NextCombination generates the erasure indexes for each erasure pattern.
 
 For a single erasure, the example code XOR's rows of data for correction.
 
