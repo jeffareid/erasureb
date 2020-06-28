@@ -97,34 +97,32 @@ mpy1:	mov	r10,[r8 +r14*8].mx.m	;r10 = src1 row ptr
 	movdqa	xmm8,xmmword ptr [rax+r9+ 0] ;xmm8 = mpy lo nibble by b tbl
 	movdqa	xmm9,xmmword ptr [rax+r9+16] ;xmm9 = mpy hi nibble by b tbl
 	xor	r13,r13			;r13 = c = outer dst col = src1 col index
-mpy2:	movdqa	xmm2,xmmword ptr [   r10+r13] ;get 32 bytes
-	movdqa	xmm6,xmmword ptr [16+r10+r13]
-	movdqa	xmm3,xmm2		;copy data to split into hi + lo nibbles
-	movdqa	xmm7,xmm6
-	pand	xmm2,xmm10		;mask data into nibbles
-	pand	xmm6,xmm10
-	pand	xmm3,xmm11
+mpy2:	movdqa	xmm4,xmmword ptr [   r10+r13] ;get 32 bytes
+	movdqa	xmm5,xmmword ptr [16+r10+r13]
+	movdqa	xmm6,xmm4		;copy data to split into hi + lo nibbles
+	movdqa	xmm7,xmm5
+	pand	xmm4,xmm10		;mask data into nibbles
+	pand	xmm5,xmm10
+	pand	xmm6,xmm11
 	pand	xmm7,xmm11
-	psrlq	xmm3,4			;shift hi nibbles to lo nibbles
+	psrlq	xmm6,4			;shift hi nibbles to lo nibbles
 	psrlq	xmm7,4
 	movdqa	xmm0,xmm8		;copy hi+lo table data
-	movdqa	xmm4,xmm8
-	movdqa	xmm1,xmm9
-	movdqa	xmm5,xmm9
-	pshufb	xmm0,xmm2		;mpy nibbles by constant via pshufb
-	pshufb	xmm4,xmm6
-	pshufb	xmm1,xmm3
-	pshufb	xmm5,xmm7
-	pxor	xmm0,xmm1		;xor the two sets of hi+lo products
-	pxor	xmm4,xmm5
+	movdqa	xmm1,xmm8
+	movdqa	xmm2,xmm9
+	movdqa	xmm3,xmm9
+	pshufb	xmm0,xmm4		;mpy nibbles by constant via pshufb
+	pshufb	xmm1,xmm5
+	pshufb	xmm2,xmm6
+	pshufb	xmm3,xmm7
+	pxor	xmm0,xmm2		;xor the two sets of hi+lo products
+	pxor	xmm1,xmm3
 	or	r14,r14			;br if first time (just store)
 	jz	short mpy3		; else xor
-	movdqa	xmm1,xmmword ptr [   r12+r13]
-	movdqa	xmm5,xmmword ptr [16+r12+r13]
-	pxor	xmm0,xmm1
-	pxor	xmm4,xmm5
+	pxor	xmm0,xmmword ptr [   r12+r13]
+	pxor	xmm1,xmmword ptr [16+r12+r13]
 mpy3:	movdqa	xmmword ptr [	r12+r13],xmm0
-	movdqa	xmmword ptr [16+r12+r13],xmm4
+	movdqa	xmmword ptr [16+r12+r13],xmm1
 	add	r13,32
 	cmp	r13,[ r8].mx.c
 	jb	mpy2
@@ -185,10 +183,8 @@ xor2:	cmp	r8,rdx			;br if dst row
 xor3:	movdqa	xmm0,xmmword ptr [rsi]	;xor src to dst
 	movdqa	xmm1,xmmword ptr [rsi+16]
 	add	rsi,r9
-	movdqa	xmm2,xmmword ptr [rdi]
-	movdqa	xmm3,xmmword ptr [rdi+16]
-	pxor	xmm0,xmm2
-	pxor	xmm1,xmm3
+	pxor	xmm0,xmmword ptr [rdi]
+	pxor	xmm1,xmmword ptr [rdi+16]
 	movdqa	xmmword ptr [rdi],xmm0
 	movdqa	xmmword ptr [rdi+16],xmm1
 	add	rdi,r9
