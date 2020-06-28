@@ -67,11 +67,11 @@ For n erasures, where n == 2 or n == 3, the following steps are performed:
   mDat's erased rows are filled with 0xAA (representing garbage).
   mSrc = mapped matrix = non erased rows of mDat.
   mDst = mapped matrix =     erased rows of mDat.
+  mSyx = copy of n rows of mSyn, with n columns removed (erasures).
   mLct = n x n locator matrix, generated based on erasure indexes.
   mInv = inverse of mLct.
   mInv is reduced in size by one row.
-  mCor = mInv x mSyn (using (n-1) x 20 of mSyn).
-  mCor is reduced in size by n columns.
+  mCor = mInv x mSyx.
   mDst = mCor x mSrc. This corrects n-1 rows of mDat.
   The remaining erased row of mDat is corrected using XOR.
 ```

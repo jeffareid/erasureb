@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------//
 //      ersbch.cpp  erasure demo - BCH based RS code                    //
 //                  Copyright(c) 2020, Jeff Reid                        //
-//                  2020JUN27 21:15                                     //
+//                  2020JUN28 14:30                                     //
 //----------------------------------------------------------------------//
 //      equates                                                         //
 //----------------------------------------------------------------------//
@@ -326,7 +326,7 @@ QWORD  r, c;
     for(r = 0; r < mSrc.r; r++){
         for(c = 0; c < mSrc.c; c++)
             std::cout << std::setfill('0') << std::hex
-                      << std::setw(2) << mSrc.m[r][c] << ' ';
+                      << std::setw(2) << (QWORD)mSrc.m[r][c] << ' ';
         std::cout << std::endl;}
     std::cout << std::endl;
 }
@@ -361,7 +361,7 @@ QWORD j = k - 1;
 static void Patterns(MATRIX &mSyn, MATRIX &mDat)
 {
 QWORD e[NPAR];                              // erasures
-QWORD r, c, n, m, x;
+QWORD r, s, c, n, m, x;                     // n = # erasures
 
     for(r = 0; r < NROW; r++){              // single erasures
         memset(mDat.m[r], 0xaa, NCOL);      // corrupt row
@@ -369,42 +369,43 @@ QWORD r, c, n, m, x;
     }
         
     for(n = 2; n <= NPAR; n++){             // n = number of erasures
-        m = n - 1;                          // m = n-1
+        s = NROW - n;                       // s = # rows - # erasures
+        m = n - 1;                          // m = # erasures - 1
+        MATRIX mSrc(s,NCOL,mDat.m[0]);      // src sub-matrix of mDat
+        MATRIX mDst(n,NCOL,mDat.m[0]);      // dst sub-matrix of mDat
+        MATRIX mSyx(n,s);                   //     sub-matrix of mSyn
         MATRIX mLct(n,n);                   // locator matrix
         MATRIX mInv(n,n);                   // inverse matrix
-        MATRIX mCor(m,NROW);                // correction matrix
-        MATRIX mSrc(NROW-n,NCOL,mDat.m[0]); // src data sub-matrix
-        MATRIX mDst(m,NCOL,mDat.m[0]);      // dst data sub-matrix
-        InitCombination(e, n, NROW);        // setup next combination
+        MATRIX mCor(m,s);                   // correction matrix
+        InitCombination(e, n, NROW);        // init next combination
         while(NextCombination(e, n, NROW)){ // set e == erasure indexes
-            x = 0;                          // set mSrc to mDat valid  rows
-            for(r = 0; r < NROW; r++)
-                if(r == e[x])
+            for(r = 0; r < n; r++)          // corrupt erased rows
+                memset(mDat.m[e[r]], 0xaa, NCOL);
+            x = 0;                          // mSrc = mDat valid  rows
+            for(r = 0; r < NROW; r++){
+                if(x < n && r == e[x])
                     x++;
                 else
                     mSrc.m[r-x] = mDat.m[r];
-            for(r = 0; r < n; r++)          // set mDst to mDat erased rows
+            }
+            for(r = 0; r < n; r++)          // mDst = mDat erased rows
                 mDst.m[r] = mDat.m[e[r]];
-            for(r = 0; r < n; r++)          // corrupt erased rows
-                memset(mDat.m[e[r]], 0xaa, NCOL);
+            x = 0;                          // mSyx = sub-matrix of mSyn
+            for(c = 0; c < NROW; c++){      //  (-n columns)
+                if(x < n && c == e[x])
+                    x++;
+                else
+                    for(r = 0; r < n; r++)
+                        mSyx.m[r][c-x] = mSyn.m[r][c];
+            }
             for(r = 0; r < n; r++)          // generate locator matrix
                 for(c = 0; c < n; c++)
                     mLct.m[r][c] = GFPow(abRoot[r], NROW-1-e[c]);
             MatrixInv(mInv, mLct);          // invert locator matrix
             mInv.r = m;                     // reduce mInv by 1 row
-            MatrixMpy(mCor, mInv, mSyn);    // generate m correction rows
+            MatrixMpy(mCor, mInv, mSyx);    // generate m correction rows
             mInv.r = n;                     // restore mInv to n rows
-            mCor.c = NROW-n;                // reduce mCor by n columns
-            x = 0;
-            for(c = 0; c < NROW; c++){
-                if(c == e[x])
-                    x++;
-                else
-                    for(r = 0; r < m; r++)
-                        mCor.m[r][c-x] = mCor.m[r][c];
-            }
             MatrixMpy(mDst, mCor, mSrc);    // correct m rows
-            mCor.c = NROW;                  // restore mCor.c
             MatrixXor(mDat, e[m]);          // correct last row via xor
         }
     }
@@ -461,10 +462,10 @@ BYTE b;
     std::cout << "# of ticks " << ctTimeStop - ctTimeStart << std::endl;
 
     b = 0;                                  // do a one time verify of mDat
-    for (r = 0; r < NDAT; r++) {
-        for (c = 0; c < NCOL; c++) {
-            if (mDat.m[r][c] != b++) {
-                goto vfy0;}}}
+    for(r = 0; r < NDAT; r++)
+        for(c = 0; c < NCOL; c++)
+            if(mDat.m[r][c] != b++)
+                goto vfy0;
 vfy0:
     if(r == NDAT)
         std::cout << "passed" << std::endl;
