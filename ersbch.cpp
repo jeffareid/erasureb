@@ -1,7 +1,7 @@
 //----------------------------------------------------------------------//
 //      ersbch.cpp  erasure demo - BCH based RS code                    //
 //                  Copyright(c) 2020, Jeff Reid                        //
-//                  2020MAY24 17:30                                     //
+//                  2020JUN27 20:30                                     //
 //----------------------------------------------------------------------//
 //      equates                                                         //
 //----------------------------------------------------------------------//
@@ -15,11 +15,10 @@ typedef unsigned long long QWORD;
 
 #define NDAT    17                      // # data rows
 #define NPAR    3                       // # parity rows
-#define NCOL    (32*1024)               // # columns (multiple of 16)
+#define NCOL    (32*1024)               // # columns (multiple of 32)
+const int NROW = NDAT+NPAR;             // # rows (total)
 
 #define DISPLAYI 0                      // dislay matrixinv
-
-const int NROW = NDAT+NPAR;             // # rows (total)
 
 class MATRIX{
 public:
@@ -326,7 +325,7 @@ int  r, c;
     for(r = 0; r < mSrc.r; r++){
         for(c = 0; c < mSrc.c; c++)
             std::cout << std::setfill('0') << std::hex
-                      << std::setw(2) << (int)mSrc.m[r][c];
+                      << std::setw(2) << (int)mSrc.m[r][c] << ' ';
         std::cout << std::endl;}
     std::cout << std::endl;
 }
@@ -361,7 +360,7 @@ int j = k - 1;
 static void Patterns(MATRIX &mSyn, MATRIX &mDat)
 {
 int e[NPAR];                                // erasures
-int r, c, n, m;
+int r, c, n, m, x;
 
     for(r = 0; r < NROW; r++){              // single erasures
         memset(mDat.m[r], 0xaa, NCOL);      // corrupt row
@@ -373,25 +372,39 @@ int r, c, n, m;
         MATRIX mLct(n,n);                   // locator matrix
         MATRIX mInv(n,n);                   // inverse matrix
         MATRIX mCor(m,NROW);                // correction matrix
-        MATRIX mFix(m,NCOL,mDat.m[0]);      // fixed data matrix
+        MATRIX mSrc(NROW-m,NCOL,mDat.m[0]); // src data sub-matrix
+        MATRIX mDst(m,NCOL,mDat.m[0]);      // dst data sub-matrix
         InitCombination(e, n, NROW);        // setup next combination
         while(NextCombination(e, n, NROW)){ // set e == erasure indexes
-            for(r = 0; r < n; r++)          // set mFix to mDat erased rows
-                mFix.m[r] = mDat.m[e[r]];
+            x = 0;                          // set mSrc to mDat valid  rows
+            for(r = 0; r < NROW; r++)
+                if(r == e[x])
+                    x++;
+                else
+                    mSrc.m[r-x] = mDat.m[r];
+            for(r = 0; r < n; r++)          // set mDst to mDat erased rows
+                mDst.m[r] = mDat.m[e[r]];
             for(r = 0; r < n; r++)          // corrupt erased rows
                 memset(mDat.m[e[r]], 0xaa, NCOL);
             for(r = 0; r < n; r++)          // generate locator matrix
                 for(c = 0; c < n; c++)
                     mLct.m[r][c] = GFPow(abRoot[r], NROW-1-e[c]);
             MatrixInv(mInv, mLct);          // invert locator matrix
-            mInv.r = m;                     // change mInv to m rows
+            mInv.r = m;                     // reduce mInv by 1 row
             MatrixMpy(mCor, mInv, mSyn);    // generate m correction rows
-            for(r = 0; r < m; r++)          // zero out n erased columns
-                for(c = 0; c < n; c++)
-                    mCor.m[r][e[c]] = 0;
-            MatrixMpy(mFix, mCor, mDat);    // correct m rows
-            MatrixXor(mDat, e[m]);          // correct last row via xor
             mInv.r = n;                     // restore mInv to n rows
+            mCor.c = NROW-n;                // reduce mCor by n columns
+            x = 0;
+            for(c = 0; c < NROW; c++){
+                if(c == e[x])
+                    x++;
+                else
+                    for(r = 0; r < m; r++)
+                        mCor.m[r][c-x] = mCor.m[r][c];
+            }
+            MatrixMpy(mDst, mCor, mSrc);    // correct m rows
+            mCor.c = NROW;                  // restore mCor.c
+            MatrixXor(mDat, e[m]);          // correct last row via xor
         }
     }
 }

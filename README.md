@@ -70,12 +70,13 @@ For a single erasure, the example code XOR's rows of data for correction.
 
 For n erasures, where n == 2 or n == 3, the following steps are performed:
 
-1. mDat's erased rows are filled with 0xAA (representing garbage).
-2. mFix = mapped matrix = erased rows of mDat.
-2. mLct = n x n locator matrix is generated based on erasure indexes.
-3. mInv = inverse of mLct.
-4. mInv is reduced in size by one row.
-4. mCor = mInv x mSyn (using (n-1) x 20 of mSyn). This is the correcting matrix.
-5. The columns of mCor corresponding to erasures are set = 0.
-6. mFix = mCor x mDat. This corrects n-1 rows of mDat.
-7. The remaining erased row of mDat is corrected using XOR.
+mDat's erased rows are filled with 0xAA (representing garbage).
+mSrc = mapped matrix = non erased rows of mDat.
+mDst = mapped matrix = erased rows of mDat.
+mLct = n x n locator matrix, generated based on erasure indexes.
+mInv = inverse of mLct.
+mInv is reduced in size by one row.
+mCor = mInv x mSyn (using (n-1) x 20 of mSyn).
+mCor is reduced in size by n columns.
+mDst = mCor x mSrc. This corrects n-1 rows of mDat.
+The remaining erased row of mDat is corrected using XOR.
