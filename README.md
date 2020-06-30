@@ -1,11 +1,12 @@
-# ersbch
+# erasureb
 
 Reed-Solomon Erasure Coding (BCH) in C++ - X86 X64.
 
-Ersbch is based on "BCH view" Reed Solomon code as an alternative
-to "original view Vandermonde matrix" code. This allows XOR to be
-used for one row of data during encode and decode to reduce matrix
-multiply overhead.
+Erasureb is based on "BCH view" Reed Solomon enconding as an alternative
+to "original view Vandermonde matrix" encoding. This allows XOR to be
+used for one row of parities during encode and for one row of
+erasures (one data row or one parity row) during decode to reduce
+matrix multiply overhead. The process is described below.
 
 The Wikipedia article describes the differences between "orignal view"
 and "BCH view", as well as a descrption of the encoders. The article
@@ -13,10 +14,10 @@ describes error decoders, but not erasure only decoders.
 
 [Wiki Reed Solomon](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction)
 
-For p parities, ersbch encodes p-1 rows via matrix multiply and XOR
+For p parities, erasureb encodes p-1 rows via matrix multiply and XOR
 to encode the remaining row, correcting the last row to encode it.
 
-For n erasures, ersbch corrects n-1 rows via matrix multiply and XOR
+For n erasures, erasureb corrects n-1 rows via matrix multiply and XOR
 to correct the remaining row. A single erasure only uses XOR.
 
 ersbch.cpp = C++ BCH based erasure code.
@@ -54,12 +55,12 @@ Main sets up the matrices used:
   mPar =  3 x 32768 mapped matrix = parity rows of mDat
 ```
 
-The function Patterns tests all 1, 2, and 3 erasure patterns.
+The function Patterns tests decoding for all 1, 2, and 3 erasure patterns.
 The inputs to Patterns are mSyn and mDat.
 InitCombination initializes for NextCombination.
 NextCombination generates the erasure indexes for each erasure pattern.
 
-For a single erasure, the example code XOR's rows of data for correction.
+For a single erasure, XOR is used to regenerate the erasure row.
 
 For n erasures, where n == 2 or n == 3, the following steps are performed:
 
@@ -72,6 +73,6 @@ For n erasures, where n == 2 or n == 3, the following steps are performed:
   mInv = inverse of mLct.
   mInv is reduced in size by one row.
   mCor = mInv x mSyx.
-  mDst = mCor x mSrc. This corrects n-1 rows of mDat.
-  The remaining erased row of mDat is corrected using XOR.
+  mDst = mCor x mSrc. This regenerates n-1 rows of mDat.
+  The remaining erased row of mDat is generated using XOR.
 ```
