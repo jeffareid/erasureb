@@ -14,11 +14,11 @@ describes error decoders, but not erasure only decoders.
 
 [Wiki Reed Solomon](https://en.wikipedia.org/wiki/Reed%E2%80%93Solomon_error_correction)
 
-For p parities, erasureb encodes p-1 rows via matrix multiply and XOR
-to encode the remaining row, correcting the last row to encode it.
+For p parities, erasureb encodes p-1 parity rows via matrix multiply and XOR
+to encode the remaining parity row, regemerating the last row to encode it.
 
-For n erasures, erasureb corrects n-1 rows via matrix multiply and XOR
-to correct the remaining row. A single erasure only uses XOR.
+For n erasures, erasureb regenerates n-1 rows via matrix multiply and XOR
+to regenerate the remaining row. A single erasure only uses XOR.
 
 ersbch.cpp = C++ BCH based erasure code.
 
@@ -57,7 +57,7 @@ Main sets up the matrices used:
 
 The function Patterns tests decoding for all 1, 2, and 3 erasure patterns.
 The inputs to Patterns are mSyn and mDat.
-InitCombination initializes for NextCombination.
+InitCombination initializes NextCombination.
 NextCombination generates the erasure indexes for each erasure pattern.
 
 For a single erasure, XOR is used to regenerate the erasure row.
